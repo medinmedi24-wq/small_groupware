@@ -1,4 +1,9 @@
 'use strict';
+const leaveSubmitError = document.getElementById('leave-submit-error');
+if (leaveSubmitError) {
+  leaveSubmitError.focus({ preventScroll: true });
+  leaveSubmitError.scrollIntoView({ block: 'center', behavior: 'instant' });
+}
 // Native details remain usable without JavaScript; phones start with compact lists.
 const leaveListViewport = window.matchMedia('(max-width: 700px)');
 function setLeaveListDisclosure() {
