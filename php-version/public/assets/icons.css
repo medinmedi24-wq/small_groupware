@@ -1,0 +1,173 @@
+nav a {
+  display: flex;
+  align-items: center;
+}
+
+.brand {
+  font-size: 0;
+}
+
+.brand::before {
+  content: "메디앤메디";
+  font-size: 21px;
+}
+
+.brand span {
+  display: none;
+}
+
+nav a b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  margin-right: 13px;
+  font-size: inherit;
+}
+
+nav a b svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.9;
+}
+
+.leave-tabs {
+  display: inline-flex;
+  gap: 4px;
+  margin: -8px 0 18px;
+  padding: 4px;
+  border: 1px solid #e1e6ee;
+  border-radius: 9px;
+  background: #eef2f7;
+}
+
+.leave-tabs button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 17px;
+  background: transparent;
+  color: #68768b;
+  font-weight: 600;
+}
+
+.leave-tabs button.active {
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 4px #233b5d1a;
+}
+
+.form input[type="file"] {
+  padding: 9px;
+  background: #f8fafc;
+}
+
+.form label > small {
+  color: #7b8798;
+  font-weight: 400;
+}
+
+.receipt-link {
+  display: block;
+  margin-top: 7px;
+  color: #3232AD;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dashboard-cards {
+  margin-top: 28px;
+}
+
+.dashboard-cards > h2 {
+  margin: 0 0 16px;
+  font-size: 19px;
+}
+
+.dashboard-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.dashboard-card-head h2 {
+  margin: 0;
+  font-size: 19px;
+}
+
+.dashboard-card-head .primary {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.dashboard-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .dashboard-card-head {
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .dashboard-head-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .dashboard-head-actions .primary {
+    justify-content: center;
+  }
+}
+
+
+.month-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px;
+  border: 1px solid #dde4ed;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.month-nav strong {
+  min-width: 92px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.month-nav button {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0 0 3px;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(50, 50, 173, .08);
+  color: #3232AD;
+  font-size: 21px;
+  line-height: 1;
+}
+
+.month-nav button:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+.dashboard-cards .cards {
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+}
+
+@media (max-width: 700px) {
+  .dashboard-cards .cards {
+    grid-template-columns: 1fr;
+  }
+}

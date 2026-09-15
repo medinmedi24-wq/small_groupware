@@ -1,0 +1,12 @@
+# Only the sanitized configuration template belongs in Git.
+/config/*
+!/config/example.php
+
+# Preserve empty storage scaffolding, never the runtime contents.
+/storage/*
+!/storage/.htaccess
+!/storage/.gitkeep
+
+/tests/runtime/
+/tests/*.local.json
+/release/
