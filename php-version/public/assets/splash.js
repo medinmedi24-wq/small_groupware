@@ -14,9 +14,9 @@
   root.classList.add('app-launching');
   const started = performance.now();
   const dismiss = () => root.classList.remove('app-launching');
-  setTimeout(dismiss, 2500);
+  setTimeout(dismiss, 4000);
   document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(dismiss, Math.max(0, 1500 - (performance.now() - started)));
+    setTimeout(dismiss, Math.max(0, 2500 - (performance.now() - started)));
   }, { once: true });
   window.addEventListener('pageshow', event => { if (event.persisted) dismiss(); });
 })();

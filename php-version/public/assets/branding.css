@@ -1,4 +1,4 @@
 .app-splash{display:none}
-.app-launching .app-splash{display:flex;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:#fff;animation:splash-failsafe 0s 3s forwards}
+.app-launching .app-splash{display:flex;position:fixed;inset:0;z-index:10000;align-items:center;justify-content:center;background:#fff;animation:splash-failsafe 0s 4.5s forwards}
 .app-splash img{display:block;width:min(100vw,480px);height:auto;max-height:100dvh;object-fit:contain}
 @keyframes splash-failsafe{to{visibility:hidden;pointer-events:none}}
