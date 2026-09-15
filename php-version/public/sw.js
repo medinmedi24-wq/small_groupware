@@ -1,5 +1,5 @@
-const CACHE = 'mnm-php-assets-v28';
-const ASSETS = ['assets/style.css','assets/admin.css','assets/icons.css','assets/php.css?v=26','assets/app.js?v=7','assets/attendance-sync.js?v=1','icons/mnm-app-192.png','icons/mnm-app-512.png'];
+const CACHE = 'mnm-php-assets-v29';
+const ASSETS = ['assets/style.css','assets/admin.css','assets/icons.css','assets/php.css?v=26','assets/branding.css?v=1','assets/splash.js?v=1','assets/groupware-logo.png','assets/groupware-splash.jpg','assets/app.js?v=7','assets/attendance-sync.js?v=1','icons/groupware-180.png','icons/groupware-192.png','icons/groupware-512.png'];
 self.addEventListener('install', event => { event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS))); self.skipWaiting(); });
 self.addEventListener('activate', event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('mnm-') && k !== CACHE).map(k => caches.delete(k))))); self.clients.claim(); });
 self.addEventListener('fetch', event => {
