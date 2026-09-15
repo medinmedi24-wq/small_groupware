@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS `CardExpense` (
   `note` TEXT NULL,
   `receiptFileName` TEXT NULL,
   `receiptFilePath` TEXT NULL,
+  `receiptAttachments` TEXT NULL,
   `receiptMimeType` TEXT NULL,
   `status` TEXT NOT NULL DEFAULT 'PENDING',
   `decisionReason` TEXT NULL,

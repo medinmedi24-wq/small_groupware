@@ -143,9 +143,18 @@ function leaveReviewToken(array $leave): string {
 function checkLeaveReviewToken(array $leave,array $input): void {
     if(!is_string($input['reviewToken']??null)||!hash_equals(leaveReviewToken($leave),$input['reviewToken']))throw new AppError('휴가 신청 내용이 변경되었습니다. 새로고침하여 최신 내용을 확인한 뒤 다시 처리해주세요.',409);
 }
+function additionalCardReceipts(array $card): array {
+    return empty($card['receiptAttachments'])?[]:json_decode($card['receiptAttachments'],true,512,JSON_THROW_ON_ERROR);
+}
+function cardReceipts(array $card): array {
+    $files=[];
+    if(!empty($card['receiptFilePath']))$files[]=['receiptFilePath'=>$card['receiptFilePath'],'receiptFileName'=>$card['receiptFileName'],'receiptMimeType'=>$card['receiptMimeType']];
+    return [...$files,...additionalCardReceipts($card)];
+}
 function cardReviewToken(array $card): string {
     $snapshot=[];
     foreach(['id','userId','usedAt','merchant','purpose','amount','isFixed','hasReceipt','hasApprovalDocument','note','receiptFilePath','receiptFileName','receiptMimeType','status','updatedAt'] as $key)$snapshot[$key]=$card[$key]??null;
+    $snapshot['receiptAttachments']=$card['receiptAttachments']??null;
     return hash('sha256',json_encode($snapshot,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR));
 }
 function checkCardReviewToken(array $card,array $input): void {

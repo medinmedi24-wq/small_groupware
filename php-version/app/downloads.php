@@ -1,8 +1,12 @@
 <?php
 declare(strict_types=1);
-function downloadReceipt(array $u,string $id): never {
+function downloadReceipt(array $u,string $id,?string $attachment=null): never {
     $r=one('SELECT * FROM `CardExpense` WHERE id=?',[$id]);
     if(!$r||!$r['receiptFilePath']||$u['role']!=='ADMIN'&&$r['userId']!==$u['id'])throw new AppError('증빙 파일을 찾을 수 없습니다.',404);
+    $selected=null;
+    foreach(cardReceipts($r) as $proof)if($attachment===null||$proof['receiptFilePath']===$attachment){$selected=$proof;break;}
+    if(!$selected)throw new AppError('증빙 파일을 찾을 수 없습니다.',404);
+    $r=$selected;
     $file=storage('receipts'.DIRECTORY_SEPARATOR.basename($r['receiptFilePath']));
     if(!is_file($file))throw new AppError('증빙 파일을 찾을 수 없습니다.',404);
     header('Content-Type: application/octet-stream');header("Content-Disposition: attachment; filename=receipt; filename*=UTF-8''".rawurlencode($r['receiptFileName']?:'receipt'));header('Content-Length: '.filesize($file));readfile($file);exit;

@@ -49,14 +49,15 @@ def main():
     files = {}
     receipt_root = args.receipts.resolve()
     for card in data['CardExpense']:
-        name = card.get('receiptFilePath')
-        if not name: continue
-        if Path(name).name != name or '\\' in name or '/' in name:
-            raise SystemExit('Unexpected receipt path. Export stopped.')
-        file = (receipt_root / name).resolve()
-        if file.parent != receipt_root or not file.is_file():
-            raise SystemExit('A referenced receipt is missing. Export stopped.')
-        files[name] = file
+        names = [card.get('receiptFilePath')] + [r['receiptFilePath'] for r in json.loads(card.get('receiptAttachments') or '[]')]
+        for name in names:
+            if not name: continue
+            if Path(name).name != name or '\\' in name or '/' in name:
+                raise SystemExit('Unexpected receipt path. Export stopped.')
+            file = (receipt_root / name).resolve()
+            if file.parent != receipt_root or not file.is_file():
+                raise SystemExit('A referenced receipt is missing. Export stopped.')
+            files[name] = file
     manifest = {'format': 1, 'createdAt': dt.datetime.now(dt.timezone.utc).isoformat(), 'counts': {k: len(v) for k, v in data.items()}, 'sessionsMigrated': False, 'receipts': {k: hashlib.sha256(v.read_bytes()).hexdigest() for k, v in files.items()}}
     if args.check:
         print(json.dumps({'integrity': 'ok', 'counts': manifest['counts'], 'receiptCount': len(files), 'sourceModified': False}))

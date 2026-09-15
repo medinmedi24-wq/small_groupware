@@ -293,19 +293,26 @@ def run():
                 ok(a.get('receipt',id=card['id'])[1]==pdf,'administrator receipt download')
                 previous_receipt=row('SELECT receiptFilePath FROM CardExpense WHERE id=?',card['id'])[0]
                 receipt_files=set((work/'storage/receipts').iterdir())
-                ok(upload(s,'invalid.pdf',b'not a PDF')[0]==400 and s.get('receipt',id=card['id'])[1]==pdf and set((work/'storage/receipts').iterdir())==receipt_files,'failed replacement retains original receipt and leaves no new file')
+                ok(upload(s,'invalid.pdf',b'not a PDF')[0]==400 and s.get('receipt',id=card['id'])[1]==pdf and set((work/'storage/receipts').iterdir())==receipt_files,'failed additional upload retains original receipt and leaves no new file')
                 replacement_pdf=pdf+b'\n% replacement'
                 if not MYSQL_DSN:
                     with contextlib.closing(sqlite3.connect(db)) as fail_db:
-                        fail_db.execute("CREATE TRIGGER qa_receipt_update_failure BEFORE UPDATE OF receiptFilePath ON CardExpense BEGIN SELECT RAISE(ABORT,'QA rollback'); END")
+                        fail_db.execute("CREATE TRIGGER qa_receipt_update_failure BEFORE UPDATE OF receiptAttachments ON CardExpense BEGIN SELECT RAISE(ABORT,'QA rollback'); END")
                     try:
                         failed_code=upload(s,'rollback.pdf',replacement_pdf)[0]
                         ok(failed_code>=400 and s.get('receipt',id=card['id'])[1]==pdf and set((work/'storage/receipts').iterdir())==receipt_files,'DB rollback removes new upload while preserving original receipt')
                     finally:
                         with contextlib.closing(sqlite3.connect(db)) as fail_db:fail_db.execute('DROP TRIGGER qa_receipt_update_failure')
-                ok(upload(s,'replacement.pdf',replacement_pdf)[0]==200,'receipt replacement succeeds')
-                ok(not (work/'storage/receipts'/previous_receipt).exists() and len(set((work/'storage/receipts').iterdir()))==len(receipt_files) and s.get('receipt',id=card['id'])[1]==replacement_pdf,'committed replacement removes previous file and serves new proof')
-                assert upload(s,'receipt.pdf',pdf)[0]==200
+                ok(upload(s,'additional.pdf',replacement_pdf)[0]==200,'additional receipt succeeds')
+                attachments=json.loads(row('SELECT receiptAttachments FROM CardExpense WHERE id=?',card['id'])[0])
+                extra=attachments[0]['receiptFilePath']
+                ok((work/'storage/receipts'/previous_receipt).exists() and len(set((work/'storage/receipts').iterdir()))==len(receipt_files)+1 and s.get('receipt',id=card['id'])[1]==pdf,'additional upload preserves original file and default download')
+                ok(s.get('receipt',id=card['id'],attachment=extra)[1]==replacement_pdf and a.get('receipt',id=card['id'],attachment=extra)[1]==replacement_pdf,'owner and administrator download additional proof')
+                ok(o.get('receipt',id=card['id'],attachment=extra)[0]==404 and s.get('receipt',id=card['id'],attachment='../'+extra)[0]==404,'additional proof rejects other owners and invalid paths')
+                listing=s.get('cards')[1]
+                ok(b'additional.pdf' in listing and b'receipt.pdf' in listing and '추가 증빙 첨부'.encode() in listing,'all proofs and additive label visible')
+                assert upload(s,'third.pdf',pdf)[0]==200
+                ok(len(json.loads(row('SELECT receiptAttachments FROM CardExpense WHERE id=?',card['id'])[0]))==2,'third proof accumulates without replacing either earlier proof')
                 ok(a.post('card_decide',id=card['id'],decision='APPROVE')[0]==200,'administrator card approval')
                 ok(s.post('card_cancel',id=card['id'])[0]==409,'approved card immutable')
                 code,xlsx=a.get('report',year=2026);ok(code==200 and xlsx[:2]==b'PK','real XLSX download')
@@ -869,7 +876,7 @@ def run():
                     target_config.write_text("<?php return ['dsn'=>'sqlite:"+target.as_posix()+"','storage'=>'"+target_store.as_posix()+"'];",encoding='utf8')
                     dest=sqlite3.connect(target);dest.executescript((ROOT/'database/sqlite.sql').read_text());dest.close()
                     subprocess.run([PHP,str(ROOT/'tools/import.php'),str(export)],env={**env,'MNM_CONFIG':str(target_config)},check=True)
-                    dest=sqlite3.connect(target);ok(dest.execute('SELECT COUNT(*) FROM LeaveRequest WHERE id=?',(leave['id'],)).fetchone()[0]==1,'migration preserves IDs and relationships');ok(dest.execute('SELECT COUNT(*) FROM Session').fetchone()[0]==0,'migration discards old login sessions');dest.close()
+                    dest=sqlite3.connect(target);ok((target_store/'receipts'/extra).read_bytes()==replacement_pdf and len(json.loads(dest.execute('SELECT receiptAttachments FROM CardExpense WHERE id=?',(card['id'],)).fetchone()[0]))==2,'export/import preserves all additional receipts');ok(dest.execute('SELECT COUNT(*) FROM LeaveRequest WHERE id=?',(leave['id'],)).fetchone()[0]==1,'migration preserves IDs and relationships');ok(dest.execute('SELECT COUNT(*) FROM Session').fetchone()[0]==0,'migration discards old login sessions');dest.close()
                     second=subprocess.run([PHP,str(ROOT/'tools/import.php'),str(export)],env={**env,'MNM_CONFIG':str(target_config)},capture_output=True)
                     ok(second.returncode!=0,'import refuses nonempty database')
                 print(json.dumps({'passed':len(checks),'database':'isolated MariaDB' if MYSQL_DSN else 'isolated SQLite','original_data_used':False}))

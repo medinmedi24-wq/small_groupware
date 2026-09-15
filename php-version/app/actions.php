@@ -192,24 +192,23 @@ function handleAction(string $action,?array $u,array $in): array {
         return ['cards','법인카드 사용 내역을 수정했습니다.'];
     }
     if($action==='card_receipt') {
-        $upload=null;$oldReceipt=null;
+        $upload=null;
         try {
-            transaction(function()use($u,$in,&$upload,&$oldReceipt){
+            transaction(function()use($u,$in,&$upload){
                 $id=(string)($in['id']??'');lockUser($u['id']);
                 $card=one('SELECT * FROM `CardExpense` WHERE id=?',[$id]);
                 if(!$card||$card['userId']!==$u['id']||$card['status']!=='PENDING')throw new AppError('본인의 검토 대기 내역만 첨부할 수 있습니다.',403);
                 checkCardReviewToken($card,$in);
                 $upload=prepareReceipt($_FILES['receipt']??null);
                 if(!$upload)throw new AppError('증빙 파일을 선택해주세요.');
-                $oldReceipt=$card['receiptFilePath'];
-                update('CardExpense',$id,$upload['data']+['updatedAt'=>now()]);
+                if($card['receiptFilePath']){
+                    $attachments=additionalCardReceipts($card);
+                    $attachments[]=$upload['data'];
+                    update('CardExpense',$id,['hasReceipt'=>1,'receiptAttachments'=>json_encode($attachments,JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR),'updatedAt'=>now()]);
+                }else update('CardExpense',$id,$upload['data']+['updatedAt'=>now()]);
             });
         }catch(Throwable $e){if($upload)@unlink($upload['path']);throw $e;}
-        // The replacement is committed before removing an unreferenced old file.
-        if($oldReceipt){
-            try{removeReplacedReceipt($oldReceipt);}catch(Throwable $e){error_log('MNM old receipt cleanup failed');}
-        }
-        return ['cards','증빙을 첨부했습니다.'];
+        return ['cards','증빙을 추가했습니다. 기존 첨부 파일은 그대로 유지됩니다.'];
     }
     if($action==='card_cancel'||$action==='card_decide') {
         transaction(function()use($action,$u,$in){$id=(string)($in['id']??'');$card=one('SELECT * FROM `CardExpense` WHERE id=?',[$id]);if(!$card)throw new AppError('내역을 찾을 수 없습니다.',404);lockUser($card['userId']);$card=one('SELECT * FROM `CardExpense` WHERE id=?',[$id]);if($card['status']!=='PENDING')throw new AppError('이미 처리된 내역입니다.',409);
@@ -230,12 +229,4 @@ function prepareReceipt(?array $file): ?array {
     $dir=storage('receipts');if(!is_dir($dir))mkdir($dir,0700,true);$name=uid().'.'.$ext;$path=$dir.DIRECTORY_SEPARATOR.$name;
     if(!move_uploaded_file($file['tmp_name'],$path))throw new RuntimeException('Upload storage unavailable');
     return ['path'=>$path,'data'=>['hasReceipt'=>1,'receiptFileName'=>mb_substr(basename(str_replace('\\','/',(string)$file['name'])),0,240),'receiptFilePath'=>$name,'receiptMimeType'=>$mime]];
-}
-
-function removeReplacedReceipt(string $name): void {
-    if($name!==basename($name)||str_contains($name,'\\')||scalar('SELECT COUNT(*) FROM `CardExpense` WHERE receiptFilePath=?',[$name]))return;
-    $directory=realpath(storage('receipts'));
-    $path=$directory===false?false:realpath($directory.DIRECTORY_SEPARATOR.$name);
-    if($path===false||dirname($path)!==$directory||!is_file($path)||is_link($directory.DIRECTORY_SEPARATOR.$name))return;
-    if(!@unlink($path))error_log('MNM old receipt cleanup failed');
 }

@@ -127,16 +127,23 @@ function cardTable(array $list,array $u,bool $manage=false): void {
         recordCell('지출일',e(substr($r['usedAt'],0,10)));recordCell('사용처',e($r['merchant']),'record-identity');
         recordCell('사용 내역',e($r['purpose']),'detail-cell');recordCell('금액',number_format((float)$r['amount']).'원','money');
         recordCellStart('증빙·옵션');
-        if($r['receiptFilePath'])echo '<a href="'.e(url('receipt',['id'=>$r['id']])).'">'.e($r['receiptFileName']?:'증빙 다운로드').'</a>';
+        renderCardReceiptLinks($r);
         foreach(['isFixed'=>'고정 지출','hasReceipt'=>'영수증 있음','hasApprovalDocument'=>'품의서 있음'] as $k=>$v)if($r[$k])echo '<small>'.e($v).'</small>';
         echo '</div></td>';recordCell('비고',e($r['note']));
         recordCell('상태',badge($r['status']).'<small>'.e($r['decisionReason']).'</small><small>'.e($r['decider']).'</small>','record-status');
         recordCellStart('처리','record-actions');
         if($r['status']==='PENDING'){
             if($manage){echo '<div class="approval-controls review-decision-controls">';buttonForm('card_decide','승인',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r),'decision'=>'APPROVE'],'approve',true);formStart('card_decide',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r),'decision'=>'REJECT'],'decision-form');echo '<label>반려 사유<input name="reason" required maxlength="500" placeholder="반려 사유"></label><button class="reject">반려</button></form></div>';}
-            elseif(canEditOwnCard($u,$r)){echo '<div class="actions approval-controls"><a data-dialog="card" class="link" href="'.e(url('card-edit',['id'=>$r['id']])).'">수정</a>';buttonForm('card_cancel','취소',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r)],'link danger',true);echo '</div><details><summary>증빙 첨부</summary>';formStart('card_receipt',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r)],'form',true);echo '<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf" required aria-label="증빙 파일"><button>첨부</button></form></details>';}
+            elseif(canEditOwnCard($u,$r)){echo '<div class="actions approval-controls"><a data-dialog="card" class="link" href="'.e(url('card-edit',['id'=>$r['id']])).'">수정</a>';buttonForm('card_cancel','취소',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r)],'link danger',true);echo '</div><details><summary>추가 증빙 첨부</summary>';formStart('card_receipt',['id'=>$r['id'],'reviewToken'=>cardReviewToken($r)],'form',true);echo '<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf" required aria-label="추가 증빙 파일"><small>기존 파일은 유지되며, 선택한 파일이 추가됩니다. JPG, PNG, WEBP, PDF · 파일당 최대 10MB</small><button>증빙 추가</button></form></details>';}
         }echo '</div></td></tr>';
     }echo '</tbody></table></div>';
+}
+function renderCardReceiptLinks(array $card): void {
+    $files=cardReceipts($card);
+    if(!$files)return;
+    echo '<ul class="card-receipt-list" aria-label="첨부된 증빙 '.count($files).'개">';
+    foreach($files as $file)echo '<li><a href="'.e(url('receipt',['id'=>$card['id'],'attachment'=>$file['receiptFilePath']])).'">'.e($file['receiptFileName']?:'증빙 다운로드').'</a></li>';
+    echo '</ul>';
 }
 function renderCardForm(array $u,?array $old=null): void {
     $action=$old?'card_edit':'card_create';
@@ -158,7 +165,7 @@ function renderCardForm(array $u,?array $old=null): void {
     }
     echo '</div>';
     if(!$old)echo '<label>증빙 파일<input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,application/pdf"><small>JPG, PNG, WEBP, PDF · 최대 10MB</small></label>';
-    elseif($old['receiptFilePath'])echo '<p class="card-receipt">첨부된 증빙은 그대로 유지됩니다.<br><a href="'.e(url('receipt',['id'=>$old['id']])).'">'.e($old['receiptFileName']?:'증빙 다운로드').'</a></p>';
+    elseif(cardReceipts($old)){echo '<div class="card-receipt">첨부된 증빙은 그대로 유지됩니다.';renderCardReceiptLinks($old);echo '</div>';}
     field('note','비고',$f['note'],'text','maxlength="300" placeholder="업무용 카드"');
     echo '<button class="primary">'.($old?'변경 저장':'사용 내역 등록').'</button></form>'.($old?'</section>':'</details>');
 }
@@ -413,7 +420,7 @@ function renderPage(string $page,array $u): void {
         $all=str_starts_with($page,'admin-');if($all)admin($u);
         if(str_contains($page,'card')){echo '<div class="card-expenses-page card-expenses-history">';title($all?'법인카드 사용 관리':'법인카드 사용 내역');if(!$all)echo '<p class="card-page-description">법인카드 사용 내역을 입력하고 증빙 파일을 등록해 주세요.</p>';tabs($all?['admin-cards'=>'사용 내역','admin-card-history'=>'처리 이력']:['cards'=>'사용 내역','card-history'=>'처리 이력'],$page);}
         else{if(!$all)echo '<div class="personal-leave-page">';title($all?'연차 관리':'내 연차');if(!$all)echo '<p class="leave-page-description">연차를 신청하고 신청 내역과 처리 이력을 확인할 수 있습니다.</p>';if($all)adminLeaveTabs($u,$page);else tabs(['leave-apply'=>'연차 신청','leaves'=>'신청 내역','history'=>'이력'],$page);}if(!str_contains($page,'card')){renderLeaveHistory($u,$all);if(!$all)echo '</div>';return;}echo '<section class="panel"><div class="timeline">';
-        if(str_contains($page,'card')){echo '<h2 class="card-history-heading">처리 이력</h2>';$historyCards=cardRows($u,$all);if(!$historyCards)echo '<div class="empty">표시할 법인카드 처리 이력이 없습니다.</div>';foreach($historyCards as $r){echo '<article><b>'.e($r['name']).' · '.e($r['merchant']).' · '.number_format((float)$r['amount']).'원</b><p>등록: '.e(koreanTime($r['createdAt'])).'</p>';if($r['receiptFileName'])echo '<p>증빙: '.e($r['receiptFileName']).'</p>';echo '<p>'.badge($r['status']).' '.e($r['decider']).' '.e($r['decisionReason']).'</p></article>';}}
+        if(str_contains($page,'card')){echo '<h2 class="card-history-heading">처리 이력</h2>';$historyCards=cardRows($u,$all);if(!$historyCards)echo '<div class="empty">표시할 법인카드 처리 이력이 없습니다.</div>';foreach($historyCards as $r){echo '<article><b>'.e($r['name']).' · '.e($r['merchant']).' · '.number_format((float)$r['amount']).'원</b><p>등록: '.e(koreanTime($r['createdAt'])).'</p>';renderCardReceiptLinks($r);echo '<p>'.badge($r['status']).' '.e($r['decider']).' '.e($r['decisionReason']).'</p></article>';}}
         echo '</div></section>';if(str_contains($page,'card')||$page==='history')echo '</div>';return;
     }
     if($page==='settings') {title('회사 휴일 관리');renderHolidayImpacts();echo '<section class="panel holiday-panel"><div class="panelhead"><h2>회사 휴일 관리</h2></div>';formStart('holiday_add',[],'holiday-form');echo '<input type="date" name="date" required aria-label="날짜" value="'.e($_POST['date']??'').'"><input name="name" required maxlength="100" placeholder="휴일 이름" aria-label="휴일 이름" value="'.e($_POST['name']??'').'"><button class="primary">휴일 추가</button></form><div class="tablewrap"><table><thead><tr><th>날짜</th><th>휴일</th><th>처리</th></tr></thead><tbody>';foreach(rows('SELECT * FROM `CompanyHoliday` ORDER BY date') as $r){echo '<tr><td>'.e(substr($r['date'],0,10)).'</td><td>'.e($r['name']).'</td><td>';buttonForm('holiday_delete','삭제',['id'=>$r['id']],'link danger',true);echo '</td></tr>';}echo '</tbody></table></div></section>';return;}
