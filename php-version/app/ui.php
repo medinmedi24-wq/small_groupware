@@ -16,9 +16,10 @@ function navIcon(string $name): string {
     ];
     return '<b aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'.($paths[$name]??$paths['check']).'</svg></b>';
 }
-function dashboardMetric(string $label,mixed $value,string $unit,?string $href=null): void {
-    echo $href===null?'<div class="card">':'<a class="card dashboard-metric-link" href="'.e($href).'">';
+function dashboardMetric(string $label,mixed $value,string $unit,?string $href=null,bool $attention=false): void {
+    echo $href===null?'<div class="card">':'<a class="card dashboard-metric-link'.($attention?' dashboard-pending':'').'" href="'.e($href).'">';
     echo '<span>'.e($label).'</span><strong>'.e($value).'<small>'.e($unit).'</small></strong>';
+    if($attention)echo '<span class="dashboard-pending-label">승인 대기</span>';
     if($href!==null)echo '<svg class="dashboard-metric-arrow" aria-hidden="true" focusable="false" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>';
     echo $href===null?'</div>':'</a>';
 }
@@ -36,6 +37,12 @@ function renderDashboard(array $u): void {
     $year=(int)date('Y');$unit='연차';$b=balance($u,$year);
     echo '<div class="dashboard-page'.($u['role']==='ADMIN'?' admin-home':'').'">';
     title('대시보드');
+    $approvalStage=null;$pending=0;foreach(STAGES as $s=>$v)if(canDecideStage($u,$s)){$approvalStage=$s;$pending+=count(stageRows($u,$s));}
+    if($approvalStage!==null){
+        echo '<div class="dashboard-action-card">';
+        dashboardMetric('내가 처리할 결재',$pending,'건',url('approvals',['stage'=>$approvalStage]),$pending>0);
+        echo '</div>';
+    }
     if($u['role']==='ADMIN'){
         attendanceSchema();
         $attendancePending=(int)scalar("SELECT COUNT(*) FROM `AttendanceRequest` WHERE status='PENDING' AND userId<>?",[$u['id']]);
@@ -63,12 +70,10 @@ function renderDashboard(array $u): void {
     $leaveStat=static function(string $label,mixed $value,bool $emphasis=false): void { echo '<div class="card'.($emphasis?' dashboard-stat-emphasis':'').'"><span>'.e($label).'</span><strong>'.e($value).'<small>일</small></strong></div>'; };
     $leaveStat('발생 '.$unit,$b['annual']);$leaveStat('사용 '.$unit,$b['used']);$leaveStat('잔여 '.$unit,$b['remaining'],true);
     $leaveStat('결재 대기 휴가',$b['pending']);$leaveStat('추가 신청 가능',$b['available']);
-    $approvalStage=null;$pending=0;foreach(STAGES as $s=>$v)if(canDecideStage($u,$s)){$approvalStage=$s;$pending+=count(stageRows($u,$s));}
     $recent=array_values(array_filter(leaveRows($u),fn($r)=>substr($r['startDate'],0,4)===(string)$year));
     $summer=array_sum(array_column(array_filter($recent,fn($r)=>$r['status']==='APPROVED'&&$r['leaveType']==='SUMMER_ADVANCE'),'days'));
     $leaveStat('여름휴가 선사용',$summer);
     echo '</div>';
-    if($approvalStage!==null)echo '<p class="dashboard-approval-summary"><a class="link" href="'.e(url('approvals',['stage'=>$approvalStage])).'">내 결재 대기 <strong>'.e($pending).'건</strong> <span aria-hidden="true">→</span></a></p>';
     echo '</section>';if($u['role']==='ADMIN')echo '</div>';echo '<section class="panel dashboard-recent"><div class="panelhead"><h2>최근 휴가 신청</h2>';if($u['role']==='ADMIN')echo '<span class="admin-scope-label">내 신청 · 최근 '.count(array_slice($recent,0,5)).'건</span>';echo '</div>';leaveTable(array_slice($recent,0,5),$u);echo '</section>';
     $cardYear=yearValue($_GET['year']??date('Y'));$month=(int)number($_GET['month']??date('n'),1,12,'월');$period=sprintf('%04d-%02d',$cardYear,$month);if($period>date('Y-m'))throw new AppError('미래 월은 조회할 수 없습니다.');
     $selected=new DateTimeImmutable($period.'-01');$prev=$selected->modify('-1 month');$next=$selected->modify('+1 month');$all=$u['role']==='ADMIN';

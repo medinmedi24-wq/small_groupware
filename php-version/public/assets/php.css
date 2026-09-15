@@ -781,6 +781,14 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
  :is(.content,.php-dialog) input:is([type=date],[type=month],[type=time],[type=datetime-local])::-webkit-date-and-time-value{min-width:0;min-height:1.2em;text-align:left}
  :is(.content,.php-dialog) input:is([type=date],[type=month],[type=time],[type=datetime-local])::-webkit-datetime-edit{min-width:0;padding:0}
 }
+.dashboard-action-card>.card{position:relative;display:block;padding:20px 56px 20px 24px;background:#fff;border:1px solid #e0e5ee;border-radius:12px;color:#253b53;text-decoration:none}
+.dashboard-action-card>.card>span{display:block;font-size:14px;font-weight:600}
+.dashboard-action-card>.card>strong{display:block;font-size:30px;margin-top:8px}
+.dashboard-action-card>.card>strong>small{font-size:14px;margin-left:6px;font-weight:400}
+.dashboard-action-card>.card.dashboard-pending{background:#fff4e5;border-color:#e6a44b;color:#914500}
+.dashboard-action-card>.card>.dashboard-pending-label{display:inline-block;margin-top:8px;padding:4px 9px;border-radius:6px;background:#ffe1b3;color:#813c00;font-size:12px}
+.dashboard-action-card .dashboard-metric-arrow{position:absolute;right:24px;top:50%;transform:translateY(-50%);width:20px;height:20px}
+.dashboard-action-card>.card:focus-visible{outline:3px solid #914500;outline-offset:3px}
 /* Keep attendance tabs unchanged on hover; retain the selected state. */
 .attendance-admin-tabs a:hover{background:#fff;border-color:#dddde7;color:#4a4a60}
 .attendance-admin-tabs a.active:hover{background:#3232ad;border-color:#3232ad;color:#fff}
