@@ -86,7 +86,6 @@ if($u['role']==='ADMIN')foreach(['admin-attendance'=>'근태 관리','admin-card
 <?php if(isset($_SESSION['flash'])): ?><div class="notice" role="status"<?=in_array($_SESSION['flash'],['로그인했습니다.','로그아웃했습니다.'],true)?' data-auth-notice':''?>><?=e($_SESSION['flash'])?></div><?php unset($_SESSION['flash']);endif; ?>
 <?php if($attendanceRevision&&!$error): ?><div data-attendance-sync="<?=e(url('attendance-revision',['scope'=>$page]))?>" data-revision="<?=e($attendanceRevision)?>"><div class="notice" role="status" hidden>다른 기기에서 근태 기록이 변경되었습니다. 입력 내용을 저장한 뒤 새로고침해주세요.</div></div><?php endif; ?>
 <?php if($u||$page==='setup'): echo $content; else: ?>
-<h1>GROUPWARE</h1>
 <?php if(isset($_SESSION['csrf'])){field('email','아이디',$_POST['email']??'','text','required maxlength="191" autocomplete="username" autocapitalize="none" placeholder="아이디 입력" spellcheck="false"');field('password','비밀번호','','password','required autocomplete="current-password"');echo '<button>로그인</button>';} ?>
 <?php endif; ?>
 <?php if($u): ?></section></main></div><?php else: ?><?php echo $page!=='setup'&&isset($_SESSION['csrf'])?'</form>':'</div>'; ?></div><?php endif; ?></body></html>
